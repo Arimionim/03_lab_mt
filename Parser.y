@@ -1,92 +1,89 @@
 {
 module Parser where
-
-import Grammar
 import Lexer
 }
 
 %name      parseExpr
 %tokentype { Token }
 %error     { parseError }
-%monad     { Either String }{ >>= }{ return }
 
 
 %token
     BEGIN       { TBegin }
     END         { TEnd }
     IF          { TIf }
-    PORTAL      { TPortal }
+    BLUE        { TBlue }
+    ORANGE      { TOrange }
     IN          { TIn }
+    ELSE        { TElse }
     OUT         { TOut }
-    NAME        { TName }
+    NAME        { TName $$}
     LBRACKET    { TLBracket }
     RBRACKET    { TRBracket }
-    BOOLOP      { TBoolOp }
-    NUMBER      { TNumber }
+    EQUAL       { TBoolOp "==" }
+    NONEQUAL    { TBoolOp "!=" }
+    LESS        { TBoolOp "<" }
+    MORE        { TBoolOp ">" }
+    NUMBER      { TNumber $$ }
+    OP          { TOp $$ }
     ASS         { TAss }
 
 %%
-Expr
-  : Lamb               { $1 }
-  | App Lamb           { App $1 $2 }
-  | App                { $1 }
-
-App
-  : App Term       { App $1 $2 }
-  | Term           { $1 }
-
-Lamb
-  : LAMBDA IDENT DOT Expr  { Lambda $2 $4 }
-
-Term
-  : LEFTP Expr RIGHTP  { $2 }
-  | IDENT              { Var $1 }
-
-%%
 Program
-    : BEGIN Body END   { $2 }
+    : BEGIN Body END   { "#include <stdio.h> \nint main() {\nint portal = 0;\n" ++ $2 ++ "return 0;\n}" }
 
 Body
-    : Body1   { Body $1 }
+    : Body1   { $1 }
 
 Body1
-    : Operation Body1 { $1 : $2 }
-    |                 { [] }
+    : Operation Body1 { $1 ++ $2 }
+    |                 { "" }
 
 Operation
     : VarDef            { $1 }
     | If                { $1 }
-    | Portal            { $1 }
+    | Blue              { $1 }
+    | Orange            { $1 }
     | In                { $1 }
     | Out               { $1 }
     | Ass               { $1 }
 
 VarDef
-    : NAME             { VarDef $1 }
+    : NAME             { "int " ++ $1 ++ ";\n" }
 
 If
-    : IF Expr BEGIN Body END { If $2 $4 }
+    : IF Expr BEGIN Body END IfEnd { "if (" ++ $2 ++ ") {\n" ++ $4 ++ "}\n" ++ $6 }
+
+IfEnd
+    : ELSE BEGIN Body END           { "else {\n" ++ $3 ++ "}\n" }
+    |                               { "" }
 
 Expr
-    : LBRACKET Var BOOLOP Var RBRACKET { Expr $2 $3 $4 }
+    : LBRACKET Val EQUAL Val RBRACKET { $2 ++ "==" ++ $4 }
+    | LBRACKET Val NONEQUAL Val RBRACKET { $2 ++ "!=" ++ $4 }
+    | LBRACKET Val LESS Val RBRACKET { $2 ++ "<" ++ $4 }
+    | LBRACKET Val MORE Val RBRACKET { $2 ++ ">" ++ $4 }
 
-Portal
-    : PORTAL NAME             { Portal $2 }
-
+Blue
+    : BLUE NAME             { "goto orange_" ++ $2 ++ ";\n"++
+                              "blue_" ++ $2 ++ ":\nportal = portal + 1;\n"}
+Orange
+    : ORANGE NAME           { "goto blue_" ++ $2 ++ ";\n"++
+                              "orange_" ++ $2 ++ ":\nportal = portal + 1;\n"}
 In
-    : IN NAME                 { In $2 }
+    : IN NAME                 { "scanf(\"%d\", &" ++ $2 ++ ");\n" }
 
 Out
-    : OUT NAME                { "printf(\"$d\"," ++ %2 ++ ");\n" }
+    : OUT Val                { "printf(\"%d\\n\", " ++ $2 ++ ");\n" }
 
 Ass
-    : Var ASS NAME            { Ass $1 $3 }
-    : Var ASS NUMBER          { Ass $1 $3 }
+    : NAME ASS Val            { $1 ++ "=" ++ $3 ++ ";\n" }
+
+Val
+    : NUMBER                   { $1 }
+    | NAME                     { $1 }
+    | Val OP Val               { $1 ++ $2 ++ $3 }
 
 {
     parseError = fail "Parse error"
-
-    data Operation = VarDef String | If Expr [Operation]
-
-    type Body = [Operation]
 }

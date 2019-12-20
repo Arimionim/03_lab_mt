@@ -3,10 +3,9 @@ all:
 	alex Lexer.x
 	happy Parser.y
 	make main
-ake main
 
 pack:
-	zip ZIP -r Main.hs Parser.y Grammar.hs Lexer.x Makefile
+	zip ZIP -r Main.hs Parser.y Lexer.x Makefile
 
 run:
 	./Main

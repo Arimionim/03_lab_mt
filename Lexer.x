@@ -13,31 +13,37 @@ tokens :-
   "#".*                      ;
   "{"                         { \_ -> TBegin}
   "}"                         { \_ -> TEnd }
-  if                          { \_ -> TIf }
-  portal                      { \_ -> TPortal }
-  in                          { \_ -> TIn }
-  out                         { \_ -> TOut }
+  "if"                          { \_ -> TIf }
+  "else"                       {\_ -> TElse}
+  "blue"                        { \_ -> TBlue }
+  "orange"                      { \_ -> TOrange }
+  "in"                          { \_ -> TIn }
+  "out"                         { \_ -> TOut }
   $alpha [$alpha $digit ']*   { \s -> TName s }
-  "("                         { \_ -> TLBracket }
-  ")"                         { \_ -> TRBracket }
-  ["=="\<\>"!="]              { \s -> TBoolOp s}
+  \(                          { \_ -> TLBracket }
+  \)                          { \_ -> TRBracket }
+  ("=="|"!="|"<"|">")         { \s -> TBoolOp s}
+  [\+\*\/\-]                  { \s -> TOp s }
   \=                          { \_ -> TAss }
-  $Digit+                     { \s -> TNumber s}
+  $digit+                     { \s -> TNumber s}
 
 {
 
 data Token =
-        | TBegin
+         TBegin
         | TEnd
         | TIf
-        | TPortal
+        | TElse
+        | TBlue
+        | TOrange
         | TIn
         | TOut
         | TName String
         | TLBracket
         | TRBracket
         | TBoolOp String
+        | TOp String
         | TAss
-        | TNumber
+        | TNumber String
            deriving (Show, Eq)
 }
